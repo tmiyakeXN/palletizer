@@ -2,14 +2,18 @@ import type { Solution } from '../types';
 
 interface Props {
   solution: Solution;
+  rank?: number;
 }
 
-export default function ResultsSummary({ solution }: Props) {
+export default function ResultsSummary({ solution, rank }: Props) {
   const { layer, numLayers, totalItems, utilization, patternName, cargoOrientation } = solution;
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-800">計算結果</h3>
+      <h3 className="text-lg font-semibold text-gray-800">
+        計算結果{rank !== undefined ? ` — パターン ${rank}` : ''}
+        {rank === 1 && <span className="ml-2 text-sm font-normal text-blue-600">(推奨)</span>}
+      </h3>
 
       {/* メイン数値 */}
       <div className="grid grid-cols-3 gap-3">
