@@ -19,14 +19,18 @@ export function solveTopN(
 ): Solution[] {
   const orientations = getOrientations(cargo);
 
+  // Max height for cargo = total max height minus pallet height
+  const cargoMaxHeight = maxHeight - pallet.h;
+  if (cargoMaxHeight <= 0) return [];
+
   // Step 1: Find the best orientation (the one that yields the most items)
   let bestOri = null;
   let bestCount = 0;
   let bestNumLayers = 0;
 
   for (const ori of orientations) {
-    if (ori.upH > maxHeight) continue;
-    const numLayers = Math.floor(maxHeight / ori.upH);
+    if (ori.upH > cargoMaxHeight) continue;
+    const numLayers = Math.floor(cargoMaxHeight / ori.upH);
     if (numLayers <= 0) continue;
 
     const patterns = generateAllPatterns(pallet.l, pallet.w, ori.footL, ori.footW);
@@ -59,7 +63,7 @@ export function solveTopN(
 
     const totalItems = count * numLayers;
     const boxVolume = cargo.l * cargo.w * cargo.h * totalItems;
-    const palletVolume = pallet.l * pallet.w * maxHeight;
+    const palletVolume = pallet.l * pallet.w * cargoMaxHeight;
     const utilization = (boxVolume / palletVolume) * 100;
 
     candidates.push({
