@@ -581,20 +581,8 @@ export function generateAllPatterns(
   const results: PatternResult[] = [];
 
   for (const { name, fn } of patternGenerators) {
-    // Try primary orientation
-    const boxes1 = fn(palletL, palletW, boxFootL, boxFootW);
-    results.push({ name, boxes: boxes1 });
-
-    // Try swapped orientation (only if different)
-    if (boxFootL !== boxFootW) {
-      const boxes2 = fn(palletL, palletW, boxFootW, boxFootL);
-      // Swap rotated flags since we swapped the inputs
-      const swapped = boxes2.map(b => ({
-        ...b,
-        rotated: !b.rotated,
-      }));
-      results.push({ name: name + '(反転)', boxes: swapped });
-    }
+    const boxes = fn(palletL, palletW, boxFootL, boxFootW);
+    results.push({ name, boxes });
   }
 
   // Filter out any boxes that exceed pallet bounds (safety)

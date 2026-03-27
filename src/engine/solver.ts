@@ -18,65 +18,67 @@ export function solveTopN(
   n: number = 5
 ): Solution[] {
   const orientations = getOrientations(cargo);
-  const allSolutions: Solution[] = [];
-  const seen = new Set<string>();
+
+  // Step 1: Find the best orientation (the one that yields the most items)
+  let bestOri = null;
+  let bestCount = 0;
+  let bestNumLayers = 0;
 
   for (const ori of orientations) {
     if (ori.upH > maxHeight) continue;
-
     const numLayers = Math.floor(maxHeight / ori.upH);
     if (numLayers <= 0) continue;
 
     const patterns = generateAllPatterns(pallet.l, pallet.w, ori.footL, ori.footW);
-
     for (const pattern of patterns) {
-      const count = pattern.boxes.length;
-      if (count === 0) continue;
-
-      const totalItems = count * numLayers;
-      const boxVolume = cargo.l * cargo.w * cargo.h * totalItems;
-      const palletVolume = pallet.l * pallet.w * maxHeight;
-      const utilization = (boxVolume / palletVolume) * 100;
-
-      // Deduplicate by count + orientation + layer height
-      const key = `${count}-${ori.footL}x${ori.footW}x${ori.upH}-${pattern.name}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      allSolutions.push({
-        layer: {
-          boxes: pattern.boxes,
-          layerHeight: ori.upH,
-          count,
-        },
-        numLayers,
-        totalItems,
-        utilization,
-        patternName: pattern.name,
-        cargoOrientation: ori,
-      });
+      const total = pattern.boxes.length * numLayers;
+      if (total > bestCount) {
+        bestCount = total;
+        bestOri = ori;
+        bestNumLayers = numLayers;
+      }
     }
   }
 
-  // Sort by total items descending, then utilization
-  allSolutions.sort((a, b) => {
-    if (b.totalItems !== a.totalItems) return b.totalItems - a.totalItems;
-    return b.utilization - a.utilization;
-  });
+  if (!bestOri) return [];
 
-  // Return top N, but deduplicate solutions with the same totalItems
-  // by keeping different patterns/orientations
-  const results: Solution[] = [];
-  const seenTotals = new Set<string>();
+  // Step 2: Using the best orientation, collect all distinct layout patterns
+  const patterns = generateAllPatterns(pallet.l, pallet.w, bestOri.footL, bestOri.footW);
+  const numLayers = bestNumLayers;
 
-  for (const sol of allSolutions) {
-    // Use count + layers + pattern layout as dedup key
-    const layoutKey = `${sol.layer.count}-${sol.numLayers}-${sol.cargoOrientation.footL}x${sol.cargoOrientation.footW}`;
-    if (seenTotals.has(layoutKey)) continue;
-    seenTotals.add(layoutKey);
-    results.push(sol);
-    if (results.length >= n) break;
+  const candidates: Solution[] = [];
+  const seenCounts = new Set<number>();
+
+  for (const pattern of patterns) {
+    const count = pattern.boxes.length;
+    if (count === 0) continue;
+
+    // Deduplicate patterns that yield the same number of boxes per layer
+    if (seenCounts.has(count)) continue;
+    seenCounts.add(count);
+
+    const totalItems = count * numLayers;
+    const boxVolume = cargo.l * cargo.w * cargo.h * totalItems;
+    const palletVolume = pallet.l * pallet.w * maxHeight;
+    const utilization = (boxVolume / palletVolume) * 100;
+
+    candidates.push({
+      layer: {
+        boxes: pattern.boxes,
+        layerHeight: bestOri.upH,
+        count,
+      },
+      numLayers,
+      totalItems,
+      utilization,
+      patternName: pattern.name,
+      cargoOrientation: bestOri,
+    });
   }
 
-  return results;
+  // Sort by total items descending
+  candidates.sort((a, b) => b.totalItems - a.totalItems);
+
+  // Return top N
+  return candidates.slice(0, n);
 }
